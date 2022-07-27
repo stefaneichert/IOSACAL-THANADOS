@@ -21,6 +21,7 @@
 
 import matplotlib.pyplot as plt
 import thanados.models.iosacal
+import numpy as np
 
 from scipy.stats import norm
 
@@ -36,12 +37,12 @@ def single_plot(calibrated_age, oxcal=False, output=None, BP='bp'):
     radiocarbon_sample_id = calibrated_age.radiocarbon_sample.id
     calibration_curve = calibrated_age.calibration_curve
     intervals = calibrated_age.intervals
-    sample_interval = calibration_curve[:,0].copy() # for determination plot
+    sample_interval = np.linspace(f_m+sigma_m*5,f_m-sigma_m*5,100)
 
     # adjust plot bounds
     min_year, max_year = (50000, -50000)
-    min_x = min(calibrated_age[:,0])
-    max_x = max(calibrated_age[:,0])
+    min_x = min(calibrated_age[:,0])*-1+1950
+    max_x = max(calibrated_age[:,0])*-1+1950
     if min_year > min_x:
         min_year = min_x
     if max_year < max_x:
@@ -49,8 +50,8 @@ def single_plot(calibrated_age, oxcal=False, output=None, BP='bp'):
 
     # do not plot the part of calibration curve that is not visible
     # greatly reduces execution time \o/
-    cutmin = calibration_curve[calibration_curve[:,0]>min_x]
-    cutmax = cutmin[cutmin[:,0]<max_x]
+    cutmin = calibration_curve[calibration_curve[:,0]>(1950+min_x)]
+    cutmax = cutmin[cutmin[:,0]<(1950+max_x)]
     calibration_curve = cutmax
 
     if BP != 'bp':
@@ -167,35 +168,36 @@ def single_plot(calibrated_age, oxcal=False, output=None, BP='bp'):
     if oxcal is True:
         for i in intervals[68]:
             ax1.axvspan(
-                i.from_year +1,
-                i.to_year -1,
-                ymin=0.0206,
-                ymax=0.041,
-                facecolor='k',
-                alpha=1)
+                i.from_year,
+                i.to_year,
+                ymin=0.05,
+                ymax=0.07,
+                facecolor='none',
+                alpha=0.8)
             ax1.axvspan(
                 i.from_year,
                 i.to_year,
-                ymin=0.0256,
-                ymax=0.041,
+                ymin=0.068,
+                ymax=0.072,
                 facecolor='w',
-                alpha=1)
+                edgecolor='w',
+                lw=2)
         for i in intervals[95]:
             ax1.axvspan(
-                i.from_year +1,
-                i.to_year -1,
-                ymin=0.001,
-                ymax=0.02,
-                facecolor='k',
-                alpha=1)
+                i.from_year,
+                i.to_year,
+                ymin=0.025,
+                ymax=0.045,
+                facecolor='none',
+                alpha=0.8)
             ax1.axvspan(
                 i.from_year,
                 i.to_year,
-                ymin=0.005,
-                ymax=0.02,
+                ymin=0.043,
+                ymax=0.047,
                 facecolor='w',
-                alpha=1)
-
+                edgecolor='w',
+                lw=2)
     else:
         for i in intervals[68]:
             ax1.axvspan(
@@ -241,10 +243,14 @@ def stacked_plot(calibrated_ages, name='Stacked plot', oxcal=False, BP='ad', out
         calibration_curve = calibrated_age.calibration_curve
         calibration_curve_title = calibration_curve.title
         intervals = calibrated_age.intervals
-        if min_year > min(calibrated_age[:,0]):
-            min_year = min(calibrated_age[:,0])
-        if max_year < max(calibrated_age[:,0]):
-            max_year = max(calibrated_age[:,0])
+
+        min_x = min(calibrated_age[:,0])*-1+1950
+        max_x = max(calibrated_age[:,0])*-1+1950
+
+        if min_year > min_x:
+            min_year = min_x
+        if max_year < max_x:
+            max_year = max_x
 
     if BP != 'bp':
         if min_year < 0 and max_year > 0:
@@ -259,16 +265,11 @@ def stacked_plot(calibrated_ages, name='Stacked plot', oxcal=False, BP='ad', out
     numrows = len(calibrated_ages)
     fig, axs = plt.subplots(numrows, 1, sharex=True, figsize=(12, 2*numrows))
     plt.suptitle("{}".format(name))
-    axs[0].invert_xaxis() # just once, because the axis is shared
+    if BP == 'bp':
+        axs[0].invert_xaxis() # just once, because the axis is shared
 
     for n, calibrated_age in enumerate(calibrated_ages):
         ax = axs[n]
-        _list = []
-        if (len(calibrated_ages) -1) == n:
-            #print(ax.get_xticks())
-            for item in ax.get_xticks():
-                print(1950 - int(item))
-                _list.append(1950 - int(item))
 
         # Calendar Age
 
@@ -325,8 +326,6 @@ def stacked_plot(calibrated_ages, name='Stacked plot', oxcal=False, BP='ad', out
             else:
                 plt.xlabel("Calibrated age (BP)", y = 0.05)
 
-    if BP != 'bp':
-        axs[0].set_xticklabels(_list)
 
     if output:
         plt.savefig(output, format="png")
